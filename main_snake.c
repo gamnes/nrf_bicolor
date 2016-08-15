@@ -168,12 +168,49 @@ void saadc_init(void)
 /**
  * @brief Function for main application entry.
  */
-uint8_t board[8][8] = {0};
+// Borrowed code from http://cplus.about.com/od/learningc/a/Game-Programming-In-C-Tutorial-Four-Snake.htm
+#define HEIGHT 8
+#define WIDTH 8
+#define SNHEADWEST 2
+#define SNHEADNORTH 3
+#define SNHEADEAST 4
+#define SNHEADSOUTH 5
+#define SNTAILWEST 6
+#define SNTAILNORTH 7
+#define SNTAILEAST 8
+#define SNTAILSOUTH 9
+#define l(X,Y)(Y*WIDTH)+X  // Used for determining int index of snake array matching x,y or board
+
+uint8_t board[WIDTH][HEIGHT] = {0};
+// Only Headindex, segment next to headindex, and tailindex change each time it moves
+uint8_t headindex = 1;
+uint8_t tailindex = 0;
+uint8_t atefood = 0;
+// Store every location of snake in a ring buffer. Every location is a single int coordinate
+// Data is pushed on the front of the queue, and taken off the back.
+// If the front hits the end of block, wraps around
+uint8_t snake[WIDTH*HEIGHT];
+uint8_t dir[WIDTH*HEIGHT];
+
+void initSnake() {
+    headindex = 1;
+    tailindex = 0;
+    atefood = 0;
+    memset(snake, 0, sizeof(snake));
+    memset(dir, 0, sizeof(dir));
+    snake[headindex] = l(5,5);
+    snake[tailindex] = l(4,5);
+    dir[snake[headindex]] = 0;
+}
+
 void print_board(void) {
-    for(uint8_t i = 0; i < 8; i++) {
+    for(uint8_t y = 0; y < 8; y++) {
         printf("|");
-        for(uint8_t j = 0; j < 8; j++) {
-           if (board[i][j]) printf("O");
+        for(uint8_t x = 0; x < 8; x++) {
+           if (snake[l(x,y)]) {
+               if (l(x,y) == headindex) printf("X");
+               else printf("O");
+           }
            else printf(" ");
         }
         printf("|\r\n");
@@ -193,6 +230,7 @@ int main(void)
     saadc_init();
     saadc_sampling_event_enable();
 
+    initSnake();
     while(1)
     {
         print_board();

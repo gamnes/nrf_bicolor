@@ -417,14 +417,9 @@
           <GroupName>Application</GroupName>
           <Files>
             <File>
-              <FileName>main.c</FileName>
+              <FileName>main_snake.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\main.c</FilePath>
-            </File>
-            <File>
-              <FileName>arm_fft_bin_data.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\arm_fft_bin_data.c</FilePath>
+              <FilePath>..\..\main_snake.c</FilePath>
             </File>
           </Files>
         </Group>
