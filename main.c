@@ -247,7 +247,6 @@ void saadc_init(void)
 /**
  * @brief Function for main application entry.
  */
-uint8_t const bicolor_oscillator_cmdd_on = 0x21;
 int main(void)
 {
     float maxValue;
@@ -258,11 +257,30 @@ int main(void)
     NRF_bicolor matrix;
     NRF_bicolor_TWI_init();
     NRF_bicolor_begin(&matrix, 0x70);
+    
     NRF_bicolor_blinkRate(&matrix, 1);
     nrf_delay_ms(2000);
-    NRF_bicolor_blinkRate(&matrix, 2);
-    nrf_delay_ms(2000);
     NRF_bicolor_blinkRate(&matrix, 0);
+    
+    NRF_bicolor_clear(&matrix);
+    NRF_bicolor_drawBitmap(&matrix, 0, 0, NRF_bicolor_frown_bmp, LED_RED);
+    NRF_bicolor_writeDisplay(&matrix);
+    nrf_delay_ms(1000);
+    
+    NRF_bicolor_clear(&matrix);
+    NRF_bicolor_drawBitmap(&matrix, 0, 0, NRF_bicolor_neutral_bmp, LED_YELLOW);
+    NRF_bicolor_writeDisplay(&matrix);
+    nrf_delay_ms(1000);
+    
+    NRF_bicolor_clear(&matrix);
+    NRF_bicolor_drawBitmap(&matrix, 0, 0, NRF_bicolor_smile_bmp, LED_GREEN);
+    NRF_bicolor_writeDisplay(&matrix);
+    nrf_delay_ms(1000);
+//    NRF_bicolor_blinkRate(&matrix, 1);
+//    nrf_delay_ms(2000);
+//    NRF_bicolor_blinkRate(&matrix, 2);
+//    nrf_delay_ms(2000);
+//    NRF_bicolor_blinkRate(&matrix, 0);
 
     printf("\n\rSAADC HAL simple example.\r\n");
     saadc_sampling_event_init();

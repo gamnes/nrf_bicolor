@@ -152,6 +152,7 @@ void NRF_bicolor_setBrightness(NRF_bicolor * t, uint8_t b) {
     }
     uint8_t const bicolor_brightness_cmd = HT16K33_CMD_BRIGHTNESS | b;
     while(nrf_drv_twi_tx(&twi_instance, t->i2c_addr, &bicolor_brightness_cmd, 1, false) == NRF_ERROR_BUSY);
+    nrf_delay_ms(1);
 }
 
 void NRF_bicolor_blinkRate(NRF_bicolor * t, uint8_t b) {
@@ -160,6 +161,7 @@ void NRF_bicolor_blinkRate(NRF_bicolor * t, uint8_t b) {
     }
     uint8_t const bicolor_blink_cmd = HT16K33_BLINK_CMD | HT16K33_BLINK_DISPLAYON | (b << 1);
     while(nrf_drv_twi_tx(&twi_instance, t->i2c_addr, &bicolor_blink_cmd, 1, false) == NRF_ERROR_BUSY);
+    nrf_delay_ms(1);
 }
 
 void NRF_bicolor_begin(NRF_bicolor* t, uint8_t _addr /* 0x70 */) {
@@ -176,9 +178,9 @@ void NRF_bicolor_begin(NRF_bicolor* t, uint8_t _addr /* 0x70 */) {
     // Turn on ocillator
     uint8_t const bicolor_oscillator_on = 0x21;  // I could not get this to work being a global variable
     while (nrf_drv_twi_tx(&twi_instance, _addr, &bicolor_oscillator_on, 1, false) == NRF_ERROR_BUSY);
-    //nrf_delay_ms(100);
+    nrf_delay_ms(1);
     // Turn off blink
-    NRF_bicolor_blinkRate(t, HT16K33_BLINK_OFF);    
+    NRF_bicolor_blinkRate(t, HT16K33_BLINK_OFF);
     // Set brightness to max fully lit
     NRF_bicolor_setBrightness(t, 15);
 }
@@ -191,8 +193,8 @@ void NRF_bicolor_writeDisplay(NRF_bicolor* t) {
         twi_write_data[(i*2)+1] = t->displaybuffer[i] & 0xFF;
         twi_write_data[(i*2)+2] = t->displaybuffer[i] >> 8;
     }
-    nrf_drv_twi_tx(&twi_instance, t->i2c_addr, twi_write_data, 17, false);
-    nrf_delay_ms(500);
+    nrf_drv_twi_tx(&twi_instance, t->i2c_addr, twi_write_data, 17, false);  // Might want to add while error check?
+    nrf_delay_ms(1);
 }
 
 void NRF_bicolor_clear(NRF_bicolor* t) {

@@ -31,10 +31,21 @@ typedef struct {
     int16_t cursor_x;
 } NRF_bicolor;
 
+extern const uint8_t NRF_bicolor_smile_bmp[];
+extern const uint8_t NRF_bicolor_neutral_bmp[];
+extern const uint8_t NRF_bicolor_frown_bmp[];
+
+#define LED_RED 1
+#define LED_YELLOW 2
+#define LED_GREEN 3
+
 void NRF_bicolor_TWI_init(void);
 void NRF_bicolor_begin(NRF_bicolor* t, uint8_t _addr /* 0x70 */);
 void NRF_bicolor_setBrightness(NRF_bicolor * t, uint8_t b);
 void NRF_bicolor_blinkRate(NRF_bicolor * t, uint8_t b);
+void NRF_bicolor_clear(NRF_bicolor* t);
+void NRF_bicolor_drawBitmap(NRF_bicolor* t, uint8_t x, uint8_t y, const uint8_t *bitmap, uint16_t color);
+void NRF_bicolor_writeDisplay(NRF_bicolor* t);
 
 
 #endif // NRF_bicolor_h
