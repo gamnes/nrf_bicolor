@@ -35,7 +35,8 @@
 #include "app_util_platform.h"
 #include <string.h>
 
-#include "nrf_drv_twi.h"
+//#include "nrf_drv_twi.h"
+#include "NRF_bicolor.h"
 
 #include "arm_math.h"
 #include "arm_const_structs.h"
@@ -43,14 +44,14 @@
 #define UART_TX_BUF_SIZE 256 /**< UART TX buffer size. */
 #define UART_RX_BUF_SIZE 1   /**< UART RX buffer size. */
 
-//#warning "!**** ARE YOU ABSOLUTELY SURE YOU HAVE CHOSEN THE CORRECT SCL AND SDA PINS? ****!"
-#define DEVICE_SCL_PIN 3
-#define DEVICE_SDA_PIN 4
+////#warning "!**** ARE YOU ABSOLUTELY SURE YOU HAVE CHOSEN THE CORRECT SCL AND SDA PINS? ****!"
+//#define DEVICE_SCL_PIN 3
+//#define DEVICE_SDA_PIN 4
 
-nrf_drv_twi_t twi_instance = NRF_DRV_TWI_INSTANCE(0);
+//nrf_drv_twi_t twi_instance = NRF_DRV_TWI_INSTANCE(0);
 
-uint8_t device_address = 0; // Address used to temporarily store the current address being checked
-bool device_found = false; 
+//uint8_t device_address = 0; // Address used to temporarily store the current address being checked
+//bool device_found = false; 
 
 #define SAMPLES_IN_BUFFER 128
 volatile uint8_t state = 1;
@@ -86,42 +87,42 @@ static const uint8_t eq[64]={
 /**
  * @brief TWI events handler.
  */
-void twi_handler(nrf_drv_twi_evt_t const * p_event, void * p_context)
-{   
-    switch(p_event->type)
-    {
-        case NRF_DRV_TWI_EVT_DONE:
-            // If EVT_DONE (event done) is received a device is found and responding on that particular address
-            printf("\r\n!****************************!\r\nDevice found at 7-bit address: %#x!\r\n!****************************!\r\n\r\n", device_address);
-            device_found = true;
-            break;
-        case NRF_DRV_TWI_EVT_ADDRESS_NACK:
-            printf("No address ACK on address: %#x!\r\n", device_address);
-            break;
-        case NRF_DRV_TWI_EVT_DATA_NACK:
-            printf("No data ACK on address: %#x!\r\n", device_address);
-            break;
-        default:
-            break;        
-    }   
-}
+//void twi_handler(nrf_drv_twi_evt_t const * p_event, void * p_context)
+//{   
+//    switch(p_event->type)
+//    {
+//        case NRF_DRV_TWI_EVT_DONE:
+//            // If EVT_DONE (event done) is received a device is found and responding on that particular address
+//            printf("\r\n!****************************!\r\nDevice found at 7-bit address: %#x!\r\n!****************************!\r\n\r\n", device_address);
+//            device_found = true;
+//            break;
+//        case NRF_DRV_TWI_EVT_ADDRESS_NACK:
+//            printf("No address ACK on address: %#x!\r\n", device_address);
+//            break;
+//        case NRF_DRV_TWI_EVT_DATA_NACK:
+//            printf("No data ACK on address: %#x!\r\n", device_address);
+//            break;
+//        default:
+//            break;        
+//    }   
+//}
 
-void twi_init (void)
-{
-    ret_code_t err_code;
-    
-    const nrf_drv_twi_config_t twi_config = {
-       .scl                = DEVICE_SCL_PIN,
-       .sda                = DEVICE_SDA_PIN,
-       .frequency          = NRF_TWI_FREQ_100K,
-       .interrupt_priority = APP_IRQ_PRIORITY_HIGH
-    };
-    
-    err_code = nrf_drv_twi_init(&twi_instance, &twi_config, twi_handler, NULL);
-    APP_ERROR_CHECK(err_code);
-    
-    nrf_drv_twi_enable(&twi_instance);
-}
+//void twi_init (void)
+//{
+//    ret_code_t err_code;
+//    
+//    const nrf_drv_twi_config_t twi_config = {
+//       .scl                = DEVICE_SCL_PIN,
+//       .sda                = DEVICE_SDA_PIN,
+//       .frequency          = NRF_TWI_FREQ_100K,
+//       .interrupt_priority = APP_IRQ_PRIORITY_HIGH
+//    };
+//    
+//    err_code = nrf_drv_twi_init(&twi_instance, &twi_config, twi_handler, NULL);
+//    APP_ERROR_CHECK(err_code);
+//    
+//    nrf_drv_twi_enable(&twi_instance);
+//}
 
 /**
  * @brief UART events handler.
@@ -246,48 +247,22 @@ void saadc_init(void)
 /**
  * @brief Function for main application entry.
  */
+uint8_t const bicolor_oscillator_cmdd_on = 0x21;
 int main(void)
 {
     float maxValue;
     uint32_t testIndex = 0;
     
     uart_config();
-    twi_init();
-    nrf_delay_ms(100);
     
-    uint8_t dummy_data = 0x55;
-    // Itterate through all possible 7-bit TWI addresses
-    for(uint8_t i = 0; i <= 0x7F; i++)
-    {
-        device_address = i;
-        // Send dummy data. If a device is present on this particular address a TWI EVT_DONE event is 
-        // received in the twi event handler and a message is printed to UART
-        nrf_drv_twi_tx(&twi_instance, i, &dummy_data, 1, false);
-        // Delay 10 ms to allow TWI transfer to complete and UART to print messages before starting new transfer
-        nrf_delay_ms(10);
-    }
-    
-    // Turn on ocillator
-    uint8_t const bicolor_oscillator_on = 0x21; 
-    while (nrf_drv_twi_tx(&twi_instance, 0x70, &bicolor_oscillator_on, 1, false) == NRF_ERROR_BUSY);
-    nrf_delay_ms(100);
-    #define HT16K33_BLINK_CMD 0x80
-    #define HT16K33_BLINK_DISPLAYON 0x01
-    #define HT16K33_BLINK_OFF 0
-    #define HT16K33_BLINK_2HZ  1
-    #define HT16K33_BLINK_1HZ  2
-    #define HT16K33_BLINK_HALFHZ  3
-    #define HT16K33_CMD_BRIGHTNESS 0xE0  
-    #define HT16K33_CMD_WRITE 0x00
-    uint8_t const bicolor_blink_cmd = HT16K33_BLINK_CMD | HT16K33_BLINK_DISPLAYON | (0 << 1);
-    while(nrf_drv_twi_tx(&twi_instance, 0x70, &bicolor_blink_cmd, 1, false) == NRF_ERROR_BUSY);
-    nrf_delay_ms(100);
-    uint8_t const bicolor_brightness_cmd = HT16K33_CMD_BRIGHTNESS | 15;  // 15 fully on
-    while(nrf_drv_twi_tx(&twi_instance, 0x70, &bicolor_brightness_cmd, 1, false) == NRF_ERROR_BUSY);
-    nrf_delay_ms(1000);
-    uint8_t const bicolor_brightness_cmd_low = HT16K33_CMD_BRIGHTNESS | 2;  // 2 lit dimly
-    while(nrf_drv_twi_tx(&twi_instance, 0x70, &bicolor_brightness_cmd_low, 1, false) == NRF_ERROR_BUSY);
-    nrf_delay_ms(5000);
+    NRF_bicolor matrix;
+    NRF_bicolor_TWI_init();
+    NRF_bicolor_begin(&matrix, 0x70);
+    NRF_bicolor_blinkRate(&matrix, 1);
+    nrf_delay_ms(2000);
+    NRF_bicolor_blinkRate(&matrix, 2);
+    nrf_delay_ms(2000);
+    NRF_bicolor_blinkRate(&matrix, 0);
 
     printf("\n\rSAADC HAL simple example.\r\n");
     saadc_sampling_event_init();
