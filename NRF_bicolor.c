@@ -54,14 +54,6 @@ const uint8_t NRF_bicolor_frown_bmp[] = {
         Bin(00111100),
 };
 
-
-#define LED_ON 1
-#define LED_OFF 0
-
-#define LED_RED 1
-#define LED_YELLOW 2
-#define LED_GREEN 3
-
 #define HT16K33_BLINK_CMD 0x80
 #define HT16K33_BLINK_DISPLAYON 0x01
 #define HT16K33_BLINK_OFF 0
@@ -92,7 +84,7 @@ void twi_handler(nrf_drv_twi_evt_t const * p_event, void * p_context)
     {
         case NRF_DRV_TWI_EVT_DONE:
             // If EVT_DONE (event done) is received a device is found and responding on that particular address
-            printf("\r\n!****************************!\r\nDevice found at 7-bit address: %#x!\r\n!****************************!\r\n\r\n", device_address);
+            //printf("\r\n!****************************!\r\nDevice found at 7-bit address: %#x!\r\n!****************************!\r\n\r\n", device_address);
             //printf("\r\n!****************************!\r\nEVT_DONE received\r\n");
             device_found = true;
             break;

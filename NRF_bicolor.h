@@ -35,6 +35,9 @@ extern const uint8_t NRF_bicolor_smile_bmp[];
 extern const uint8_t NRF_bicolor_neutral_bmp[];
 extern const uint8_t NRF_bicolor_frown_bmp[];
 
+#define LED_ON 1
+#define LED_OFF 0
+
 #define LED_RED 1
 #define LED_YELLOW 2
 #define LED_GREEN 3
@@ -46,6 +49,9 @@ void NRF_bicolor_blinkRate(NRF_bicolor * t, uint8_t b);
 void NRF_bicolor_clear(NRF_bicolor* t);
 void NRF_bicolor_drawBitmap(NRF_bicolor* t, uint8_t x, uint8_t y, const uint8_t *bitmap, uint16_t color);
 void NRF_bicolor_writeDisplay(NRF_bicolor* t);
+void NRF_bicolor_fillRect(NRF_bicolor* t, int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
+void NRF_bicolor_drawLine(NRF_bicolor* t, int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color);
+void NRF_bicolor_drawPixel(NRF_bicolor* t, int16_t x, int16_t y, uint16_t color);
 
 
 #endif // NRF_bicolor_h
