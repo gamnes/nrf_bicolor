@@ -179,6 +179,7 @@ void saadc_init(void)
 #define SNTAILNORTH 7
 #define SNTAILEAST 8
 #define SNTAILSOUTH 9
+#define SNAKE 1
 #define l(X,Y)(Y*WIDTH)+X  // Used for determining int index of snake array matching x,y or board
 
 uint8_t board[WIDTH][HEIGHT] = {0};
@@ -203,15 +204,19 @@ void initSnake() {
     dir[snake[headindex]] = 0;
 }
 
+void drawSnake(void) {
+    board[0][0] = SNAKE;
+}
+
+void renderScreen(void) {
+    drawSnake();
+}
+
 void print_board(void) {
     for(uint8_t y = 0; y < 8; y++) {
         printf("|");
         for(uint8_t x = 0; x < 8; x++) {
-           if (snake[l(x,y)]) {
-               if (l(x,y) == headindex) printf("X");
-               else printf("O");
-           }
-           else printf(" ");
+           if (board[x][y] == SNAKE) printf("O");
         }
         printf("|\r\n");
     }
