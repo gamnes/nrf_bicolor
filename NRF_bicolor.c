@@ -185,7 +185,7 @@ void NRF_bicolor_writeDisplay(NRF_bicolor* t) {
         twi_write_data[(i*2)+1] = t->displaybuffer[i] & 0xFF;
         twi_write_data[(i*2)+2] = t->displaybuffer[i] >> 8;
     }
-    nrf_drv_twi_tx(&twi_instance, t->i2c_addr, twi_write_data, 17, false);  // Might want to add while error check?
+    while (nrf_drv_twi_tx(&twi_instance, t->i2c_addr, twi_write_data, 17, false) == NRF_ERROR_BUSY);
     nrf_delay_ms(1);
 }
 

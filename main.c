@@ -197,12 +197,16 @@ static float       samples_nrf_uno[SAMPLES_IN_BUFFER] = {
 -9,
 -191};
 
-// This is low-level noise that's subtracted from each FFT output column:
-static const uint8_t noise[64] = {
-    8,6,6,5,3,4,4,4,3,4,4,3,2,3,3,4,
-    2,1,2,1,3,2,3,2,1,2,3,1,2,3,4,4,
-    3,2,2,2,2,2,2,1,3,2,2,2,2,2,2,2,
-    2,2,2,2,2,2,2,2,2,2,2,2,2,3,3,4
+// This is low-level noise that's subtracted from each FFT output column: Modified for 52 output
+static const uint16_t noise[64] = {
+//    8,6,6,5,3,4,4,4,3,4,4,3,2,3,3,4,
+//    2,1,2,1,3,2,3,2,1,2,3,1,2,3,4,4,
+//    3,2,2,2,2,2,2,1,3,2,2,2,2,2,2,2,
+//    2,2,2,2,2,2,2,2,2,2,2,2,2,3,3,4
+    500,150,150,100,75,90,90,90,75,90,90,75,65,75,75,90,
+    65,50,65,50,75,65,75,65,50,65,75,50,65,75,90,90,
+    75,65,65,65,65,65,65,50,75,65,65,65,65,65,65,65,
+    65,65,65,65,65,65,65,65,65,65,65,65,65,75,75,90
 };
 
   // These are scaling quotients for each FFT output column, sort of a
@@ -335,7 +339,8 @@ void saadc_sampling_event_init(void)
     /* setup m_timer for compare event every 1ms */
     //uint32_t ticks = nrf_drv_timer_ms_to_ticks(&m_timer, 400);
     //uint32_t ticks = nrf_drv_timer_ms_to_ticks(&m_timer, 10);
-    uint32_t ticks = nrf_drv_timer_us_to_ticks(&m_timer, 104);  // Every 104 uS should give roughly 9615 Hz
+    //uint32_t ticks = nrf_drv_timer_us_to_ticks(&m_timer, 104);  // Every 104 uS should give roughly 9615 Hz
+    uint32_t ticks = nrf_drv_timer_us_to_ticks(&m_timer, 62);  // Oversampling 2x, halfing
     nrf_drv_timer_extended_compare(&m_timer, NRF_TIMER_CC_CHANNEL0, ticks, NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK, false);
     nrf_drv_timer_enable(&m_timer);
 
@@ -361,7 +366,7 @@ void saadc_callback(nrf_drv_saadc_evt_t const * p_event)
 {
     if (p_event->type == NRF_DRV_SAADC_EVT_DONE)
     {
-        ret_code_t err_code;
+        //ret_code_t err_code;
 
         //printf("ADC event number: %d\r\n",(int)m_adc_evt_counter);
         samples_ready = true;
@@ -401,20 +406,44 @@ void saadc_init(void)
     //APP_ERROR_CHECK(err_code);
 }
 
+// Convert a frequency to the appropriate FFT bin it will fall within.
+int frequencyToBin(float frequency) {
+  float binFrequency = (float)9600 / (float)128;
+  return (int)(frequency / binFrequency);
+}
+
+// Compute the average magnitude of a target frequency window vs. all other frequencies.
+void windowMean(float* magnitudes, int lowBin, int highBin, float* windowMean, float* otherMean) {
+    *windowMean = 0;
+    *otherMean = 0;
+    // Notice the first magnitude bin is skipped because it represents the
+    // average power of the signal.
+    for (int i = 1; i < 128/2; ++i) {
+      if (i >= lowBin && i <= highBin) {
+        *windowMean += magnitudes[i];
+      }
+      else {
+        *otherMean += magnitudes[i];
+      }
+    }
+    *windowMean /= (highBin - lowBin) + 1;
+    *otherMean /= (128 / 2 - (highBin - lowBin));
+}
+
 /**
  * @brief Function for main application entry.
  */
 int main(void)
 {
-    float maxValue;
-    uint32_t testIndex = 0;
+    //float maxValue;
+    //uint32_t testIndex = 0;
     
     uint8_t nBins = 0;
     uint8_t binNum = 0;
     uint8_t i = 0;
     uint8_t j = 0;
-    uint8_t peak[8] = {0};  // Peak level of each column; used for falling dots
-    uint8_t dotCount = 0;  // Frame counter for delaying dot-falling speed
+    //uint8_t peak[8] = {0};  // Peak level of each column; used for falling dots
+    //uint8_t dotCount = 0;  // Frame counter for delaying dot-falling speed
     uint8_t colCount = 0;  // Frame counter for storing past column data
     int col[8][10];  // Columns levels for the prior 10 frames
     memset(col , 0, sizeof(col));
@@ -422,6 +451,7 @@ int main(void)
     int maxLvlAvg[8];  // pseudo rolling averages for the prior few frames.
     int colDiv[8];  // Used when filtering FFT output to 8 columns
     uint8_t * data;
+    float frequencyWindow[8+1];
     
     // Setup
     for(i = 0; i < 8; i++) {
@@ -433,6 +463,10 @@ int main(void)
         for (colDiv[i] = 0; j < nBins; j++) {
             colDiv[i] += data[j];
         }
+    } 
+    for(i = 0; i < 8+1; i++) {        
+        float windowSize = (9600 / 2.0) / 8;
+        frequencyWindow[i] = i*windowSize;
     }
     
     uart_config();
@@ -442,23 +476,23 @@ int main(void)
     NRF_bicolor_begin(&matrix, 0x70);
     
     NRF_bicolor_blinkRate(&matrix, 1);
-    nrf_delay_ms(2000);
+    nrf_delay_ms(1000);
     NRF_bicolor_blinkRate(&matrix, 0);
     
     NRF_bicolor_clear(&matrix);
     NRF_bicolor_drawBitmap(&matrix, 0, 0, NRF_bicolor_frown_bmp, LED_RED);
     NRF_bicolor_writeDisplay(&matrix);
-    nrf_delay_ms(1000);
+    nrf_delay_ms(500);
     
     NRF_bicolor_clear(&matrix);
     NRF_bicolor_drawBitmap(&matrix, 0, 0, NRF_bicolor_neutral_bmp, LED_YELLOW);
     NRF_bicolor_writeDisplay(&matrix);
-    nrf_delay_ms(1000);
+    nrf_delay_ms(500);
     
     NRF_bicolor_clear(&matrix);
     NRF_bicolor_drawBitmap(&matrix, 0, 0, NRF_bicolor_smile_bmp, LED_GREEN);
     NRF_bicolor_writeDisplay(&matrix);
-    nrf_delay_ms(1000);
+    nrf_delay_ms(500);
 //    NRF_bicolor_blinkRate(&matrix, 1);
 //    nrf_delay_ms(2000);
 //    NRF_bicolor_blinkRate(&matrix, 2);
@@ -533,7 +567,7 @@ int main(void)
         if (samples_ready) {
             //printf("\n\rSamples are ready to be used.\r\n");
             static const int16_t noiseThreshold = 4;
-            for (int i = 0; i < SAMPLES_IN_BUFFER; i++) {
+            for (i = 0; i < SAMPLES_IN_BUFFER; i++) {
                 //printf("%d\r\n", m_buffer_pool[0][i]);
                 if (m_buffer_pool[0][i] > (512 - noiseThreshold) && m_buffer_pool[0][i] < (512 + noiseThreshold)) {
                     samples_nrf[i*2] = 0;
@@ -567,8 +601,8 @@ int main(void)
             samples_ready = false;
             
             // Remove noise and apply EQ levels to testOutputArduinoAttmpt
-//            uint8_t L = 0;
-//            for (int i = 0; i < SAMPLES_IN_BUFFER/2; i++) {
+            uint16_t L = 0;
+            for (i = 1; i < SAMPLES_IN_BUFFER/2; i++) {
 //                // Make it match arduino output
 //                //printf("%f\r\n", testOutput[i]);
 //                //printf("%f\r\n", magnitudes[i]);
@@ -576,18 +610,43 @@ int main(void)
 //                //printf("%d:%d\r\n", i, testOutputArduinoAttmpt[i]);
 //                //printf("%d\r\n", testOutputArduinoAttmpt[i]);
 //                
-//                L = noise[i];
+                L = noise[i];
+                magnitudes[i] = (magnitudes[i] <= L) ? 0 : magnitudes[i];
 //                testOutputArduinoAttmpt[i] = (testOutputArduinoAttmpt[i] <= L) ? 0 :
 //                    ((testOutputArduinoAttmpt[i] - L) * (256 - eq[i])) >> 8;
-//            } 
-            //printf("\r\n\n\n");
-            //nrf_delay_ms(100);
+            } 
             
             // Fill background with colors, then idle parts of columns will erase
             NRF_bicolor_fillRect(&matrix, 0, 0, 8, 3, LED_RED);
             NRF_bicolor_fillRect(&matrix, 0, 3, 8, 2, LED_YELLOW);
             NRF_bicolor_fillRect(&matrix, 0, 5, 8, 3, LED_GREEN);
-            //NRF_bicolor_writeDisplay(&matrix);
+            
+            // Calculate intensity and remove pixels from matrix
+            #define SPECTRUM_MIN_DB 40.0
+            #define SPECTRUM_MAX_DB 80.0
+            float intensity, otherMean;
+            for (i = 0; i < 8; i++) {
+                windowMean(magnitudes, 
+                    frequencyToBin(frequencyWindow[i]),
+                    frequencyToBin(frequencyWindow[i+1]),
+                    &intensity,
+                    &otherMean);
+                // Convert intensity to decibels.
+                intensity = 20.0*log10(intensity);
+                // Scale the intensity and clamp between 0 and 1.0.
+                intensity -= SPECTRUM_MIN_DB;
+                intensity = intensity < 0.0 ? 0.0 : intensity;
+                intensity /= (SPECTRUM_MAX_DB-SPECTRUM_MIN_DB);
+                intensity = intensity > 1.0 ? 1.0 : intensity;
+                //printf("%f\r\n", intensity);
+                NRF_bicolor_drawLine(&matrix, i, 0, i, 8 - (int)(8*intensity), LED_OFF);
+                //pixels.setPixelColor(i, pixelHSVtoRGBColor(hues[i], 1.0, intensity));
+            }
+            //printf("\r\n\n\n");
+            //nrf_delay_ms(100);
+            
+            NRF_bicolor_writeDisplay(&matrix);
+            nrf_delay_ms(1);
             
             // Downsample spectrum output to 8 columns:
 //            uint8_t sum = 0;
